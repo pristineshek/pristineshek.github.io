@@ -1,0 +1,322 @@
+<!--
+Pristine Shek
+IS 201 (6501)
+Web App - Collaborative Dot Art
+December 2025
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Dot Art - Pristine Shek</title>
+    <link rel="stylesheet" href="styles/main-style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">PRISTINE</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">HOME</a></li>
+                <li><a href="html/aboutme.html">ABOUT</a></li>
+                <li><a href="scratch.html">PORTFOLIO</a></li>
+                <li><a href="html/Resume.html">RESUME</a></li>
+                <li><a href="webapp.html" class="active nav-btn">WEB APP</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <section class="page-header">
+        <div class="webapp-header">
+            <h1> COLLABORATIVE DOT ART </h1>
+            <p>Every click brings a new color and a new possibility!</p>
+        </div>
+    </section>
+
+    <!-- Info Section -->
+    <section class="section-white">
+        <div class="container-small">
+            <div class="info-box">
+                <h2>How It Works</h2>
+                <p>Click anywhere on the canvas to leave a dot. <span class="highlight">Each click automatically gives you a beautiful new random color!</span> 
+                Create stunning patterns, write colorful messages, or just enjoy watching your rainbow masterpiece come to life. 
+                Made a mistake? Use the undo button!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="section-gray">
+        <div class="container">
+            <div class="controls-panel">
+                <div class="color-display">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <span style="color: #555; font-weight: bold;">Current Color:</span>
+                        <div id="colorIndicator" class="color-indicator"></div>
+                    </div>
+                    <div style="font-size: 12px; color: #888;">Auto-changes with each click! 🎨</div>
+                </div>
+                
+                <div class="dot-size-control">
+                    <label for="dotSize">Dot Size:</label>
+                    <input type="range" id="dotSize" min="5" max="50" value="20" step="1">
+                    <span id="dotSizeValue" style="min-width: 35px; font-weight: bold;">20</span>px
+                </div>
+                
+                <button class="undo-btn" id="undoBtn" disabled>
+                    ↶ Undo Last Dot
+                </button>
+                
+                <button class="clear-btn" id="clearBtn">🗑️ Clear All</button>
+                <button class="download-btn" id="downloadBtn">💾 Save Art</button>
+            </div>
+
+            <div class="stats">
+                Total Dots: <strong id="dotCount">0</strong> | 
+                Colors Used: <strong id="colorCount">0</strong> |
+                Your Contributions: <strong id="userDots">0</strong>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="artCanvas" width="800" height="600"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+<footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 Pristine Shek. All Rights Reserved.</p>
+            <div class="footer-links">
+                <a href="https://www.linkedin.com/in/pristine-shek-b72439256" target="_blank">LinkedIn</a>
+                <a href="https://www.instagram.com/pristine_photograghy__/" target="_blank">Instagram</a>
+                <a href="mailto:pshek@byu.edu">Email</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        console.log('Script starting...');
+        
+        // Get elements
+        const canvas = document.getElementById('artCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorIndicator = document.getElementById('colorIndicator');
+        const undoBtn = document.getElementById('undoBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const dotSizeInput = document.getElementById('dotSize');
+        const dotSizeValue = document.getElementById('dotSizeValue');
+
+        console.log('Canvas element:', canvas);
+
+        // State
+        let currentColor = generateRandomColor();
+        let dotSize = 20;
+        let dots = [];
+        let userHistory = [];
+
+        // Set creamy background
+        ctx.fillStyle = '#FFF8E7';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Initialize
+        colorIndicator.style.backgroundColor = currentColor;
+        updateStats();
+        loadFromStorage();
+
+        console.log('Initialization complete. Current color:', currentColor);
+
+        // Generate random color
+        function generateRandomColor() {
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+                '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
+                '#E07A5F', '#81B29A', '#F4A261', '#E76F51', '#2A9D8F',
+                '#264653', '#E9C46A', '#F77F00', '#D62828', '#023047',
+                '#FB8500', '#FFB703', '#219EBC', '#8ECAE6', '#023E8A',
+                '#9D4EDD', '#7209B7', '#560BAD', '#3A0CA3', '#4CC9F0',
+                '#06FFA5', '#FF006E', '#FFBE0B', '#8338EC', '#3A86FF',
+                '#FF5A5F', '#00D9FF', '#FF0054', '#00F5FF', '#7FFF00',
+                '#FF1493', '#00CED1', '#FF69B4', '#20B2AA', '#FF8C00',
+                '#FFFFFF', '#F0F0F0', '#FFD700', '#FF69B4', '#00FA9A'
+            ];
+            
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Draw a dot
+        function drawDot(x, y, color, size) {
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+
+        // Redraw all dots
+        function redrawCanvas() {
+            // Clear with background color
+            ctx.fillStyle = '#FFF8E7';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Redraw all dots
+            dots.forEach(dot => {
+                drawDot(dot.x, dot.y, dot.color, dot.size);
+            });
+        }
+
+        // Handle canvas click
+        canvas.addEventListener('click', function(event) {
+            console.log('Click event fired!');
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            console.log('Click position:', x, y);
+            console.log('Current dot size:', dotSize);
+            console.log('Current color:', currentColor);
+            
+            // Draw dot immediately
+            drawDot(x, y, currentColor, dotSize);
+            
+            // Save dot
+            const dot = { x: x, y: y, color: currentColor, size: dotSize };
+            dots.push(dot);
+            userHistory.push(dot);
+            
+            console.log('Dot added. Total dots:', dots.length);
+            
+            // Update UI
+            updateStats();
+            undoBtn.disabled = false;
+            saveToStorage();
+            
+            // Change color for next click
+            currentColor = generateRandomColor();
+            colorIndicator.style.backgroundColor = currentColor;
+            colorIndicator.style.transform = 'scale(1.2) rotate(360deg)';
+            setTimeout(() => {
+                colorIndicator.style.transform = 'scale(1) rotate(0deg)';
+            }, 300);
+            
+            console.log('Next color:', currentColor);
+        }, false);
+
+        // Dot size slider
+        dotSizeInput.addEventListener('input', function(event) {
+            dotSize = parseInt(event.target.value);
+            dotSizeValue.textContent = dotSize;
+            console.log('Dot size changed to:', dotSize);
+        });
+
+        // Undo button
+        undoBtn.addEventListener('click', function() {
+            if (userHistory.length === 0) return;
+            
+            console.log('Undo clicked');
+            userHistory.pop();
+            dots.pop();
+            
+            redrawCanvas();
+            updateStats();
+            saveToStorage();
+            
+            if (userHistory.length === 0) {
+                undoBtn.disabled = true;
+            }
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', function() {
+            if (confirm('Clear the entire canvas? This will erase all dots!')) {
+                console.log('Clearing canvas');
+                dots = [];
+                userHistory = [];
+                redrawCanvas();
+                updateStats();
+                undoBtn.disabled = true;
+                localStorage.removeItem('collaborativeDots');
+            }
+        });
+
+        // Download button
+        downloadBtn.addEventListener('click', function() {
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 10);
+            link.download = 'dot-art-' + timestamp + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            alert('🎨 Artwork saved as: dot-art-' + timestamp + '.png');
+        });
+
+        // Update statistics
+        function updateStats() {
+            const uniqueColors = new Set(dots.map(d => d.color));
+            document.getElementById('dotCount').textContent = dots.length;
+            document.getElementById('colorCount').textContent = uniqueColors.size;
+            document.getElementById('userDots').textContent = userHistory.length;
+        }
+
+        // Save to localStorage
+        function saveToStorage() {
+            try {
+                localStorage.setItem('collaborativeDots', JSON.stringify({
+                    dots: dots,
+                    userHistory: userHistory
+                }));
+                console.log('Saved to storage');
+            } catch (e) {
+                console.log('Could not save:', e);
+            }
+        }
+
+        // Load from localStorage
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem('collaborativeDots');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    dots = data.dots || [];
+                    userHistory = data.userHistory || [];
+                    redrawCanvas();
+                    updateStats();
+                    if (userHistory.length > 0) {
+                        undoBtn.disabled = false;
+                    }
+                    console.log('Loaded from storage:', dots.length, 'dots');
+                }
+            } catch (e) {
+                console.log('Could not load:', e);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                undoBtn.click();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                downloadBtn.click();
+            }
+        });
+
+        console.log('All event listeners attached');
+        console.log('Ready to accept clicks!');
+    </script>
+</body>
+</html>
